@@ -1,0 +1,12 @@
+{application
+,xrouter
+,[{description, "Server-side implementation of XMPP component (XEP 0114)"}
+ ,{vsn, "0.1.0"}
+ ,{applications, [kernel, stdlib]}
+ ,{mod, {xrouter, undefined}}
+ ,{env,[{servers,[]}]}
+ ,{modules, [xrouter, xrouter_server, xrouter_sup]}
+ ,{maintainers, ["pouriya.jahanbakhsh@gmail.com"]}
+ ,{licenses, ["BSD 3-Clause"]}
+ ,{links, [{"GitHub", "https://github.com/soroush-app/xrouter"}]}
+ ]}.
