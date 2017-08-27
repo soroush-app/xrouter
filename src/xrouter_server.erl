@@ -88,6 +88,8 @@
                 ,jid
                 ,id}).
 
+-define(DEF_SERVER_OPTS, [active, binary, {reuseaddr, true}]).
+
 -define(STREAM_TIMEOUT, 2000).
 -define(HANDSHAKE_TIMEOUT, 3000).
 -define(DEFAULT_TERMINATE_TIMEOUT, 2000).
@@ -133,13 +135,19 @@ start_link(Name, Mod, Port, Opts)
          erlang:is_atom(Mod) andalso
          erlang:is_integer(Port) andalso
          erlang:is_list(Opts) ->
-    {_, {_, ServOpts}, Opts2} = lists:keytake(server_options, 1, Opts),
-    ServOpts2 = [{connector_childspec_plan, [delete]}|ServOpts],
+    {ServOpts, Opts2} =
+        case lists:keytake(server_options, 1, Opts) of
+            {_, {_, ServOpts2}, Opts3} ->
+                {ServOpts2++?DEF_SERVER_OPTS, Opts3};
+            false ->
+                {?DEF_SERVER_OPTS, Opts}
+        end,
+    ServOpts3 = [{connector_childspec_plan, [delete]}|ServOpts],
     sockerl:start_link_server({local, Name}
                              ,?MODULE
                              ,{Mod, Opts2}
                              ,Port
-                             ,ServOpts2).
+                             ,ServOpts3).
 
 
 
