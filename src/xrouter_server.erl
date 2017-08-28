@@ -537,7 +537,8 @@ parse_stanza(#?STATE{state = handshake
 
         {ok, RetOpts2} when erlang:is_list(RetOpts2) ->
             {Data2, RetOpts3} = concat(Data
-                                      ,[{packet, <<"<handshake/>">>}
+                                      ,[{timeout, infinity}
+                                       ,{packet, <<"<handshake/>">>}
                                        |RetOpts]
                                       ,RetOpts2),
             State2 = State#?STATE{state = authenticated
