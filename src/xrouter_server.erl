@@ -88,7 +88,9 @@
                 ,jid
                 ,id}).
 
--define(DEF_SERVER_OPTS, [active, binary, {reuseaddr, true}]).
+-define(DEF_SOCK_OPTS, [{active, true}
+                       ,{mode, binary}
+                       ,{reuseaddr, true}]).
 
 -define(STREAM_TIMEOUT, 2000).
 -define(HANDSHAKE_TIMEOUT, 3000).
@@ -132,22 +134,15 @@ start_link(atom()
     sockerl_types:start_return().
 start_link(Name, Mod, Port, Opts)
     when erlang:is_atom(Name) andalso
-         erlang:is_atom(Mod) andalso
-         erlang:is_integer(Port) andalso
-         erlang:is_list(Opts) ->
-    {ServOpts, Opts2} =
-        case lists:keytake(server_options, 1, Opts) of
-            {_, {_, ServOpts2}, Opts3} ->
-                {ServOpts2++?DEF_SERVER_OPTS, Opts3};
-            false ->
-                {?DEF_SERVER_OPTS, Opts}
-        end,
-    ServOpts3 = [{connector_childspec_plan, [delete]}|ServOpts],
+    erlang:is_atom(Mod) andalso
+    erlang:is_integer(Port) andalso
+    erlang:is_list(Opts) ->
+    {ServOpts, Opts2} = filter_options(Opts),
     sockerl:start_link_server({local, Name}
                              ,?MODULE
                              ,{Mod, Opts2}
                              ,Port
-                             ,ServOpts3).
+                             ,ServOpts).
 
 
 
@@ -378,7 +373,7 @@ terminate(Reason
             ok;
         _ ->
             _ = sockerl_socket:send(sockerl_metadata:
-                                    get_transporter(SMD)
+            get_transporter(SMD)
                                    ,sockerl_metadata:get_socket(SMD)
                                    ,<<"</stream:stream>">>
                                    ,sockerl_metadata:get_options(SMD))
@@ -491,9 +486,9 @@ parse_stanza(#?STATE{state = undefined, data = Data}=State
             {_, _, Int} = os:timestamp(),
             Id = erlang:integer_to_binary(Int),
             Pkt = io_lib:format(<<"<stream:stream xmlns='jabber:compone"
-                                  "nt:accept' xmlns:stream='http://ethe"
-                                  "rx.jabber.org/streams' from='~s' id="
-                                  "'~s'>">>
+            "nt:accept' xmlns:stream='http://ethe"
+            "rx.jabber.org/streams' from='~s' id="
+            "'~s'>">>
                                ,[To, Id]),
             RetOpts2 = [{timeout, ?HANDSHAKE_TIMEOUT}
                        ,{packet, Pkt} | RetOpts],
@@ -696,3 +691,41 @@ stream_error(Err) ->
                        ,undefined
                        ,undefined
                        ,[xmpp_utils:make_xmpp_error(Err)]).
+
+
+
+
+
+
+filter_options(Opts) ->
+    filter_options(Opts, [], []).
+
+
+
+
+
+
+
+filter_options([{server_options, ServOpts}|Opts], ServOpts2, Opts2) ->
+    ServOpts3 = ServOpts2 ++ filter_server_options(ServOpts),
+    filter_options(Opts, ServOpts3, Opts2);
+filter_options([Opt|Opts], ServOpts, Opts2) ->
+    filter_options(Opts, ServOpts, [Opt|Opts2]);
+filter_options([], ServOpts, Opts) ->
+    {[{connector_childspec_plan, [delete]}|ServOpts]
+    ,lists:reverse(Opts)}.
+
+
+
+
+
+filter_server_options(Opts) ->
+    filter_server_options(Opts, [], []).
+filter_server_options([{socket_options, SockOpts2}|Opts]
+                     ,SockOpts
+                     ,Opts2) ->
+    filter_server_options(Opts, SockOpts ++ SockOpts2, Opts2);
+filter_server_options([Opt|Opts], SockOpts, Opts2) ->
+    filter_server_options(Opts, SockOpts, [Opt|Opts2]);
+filter_server_options([], SockOpts, Opts) ->
+    [{socket_options, SockOpts ++ ?DEF_SOCK_OPTS}|lists:reverse(Opts)].
