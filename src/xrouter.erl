@@ -54,7 +54,7 @@
         ,start_link_server/4
         ,get_servers/0
         ,stop_server/1
-        ,validate_secret_key/3]).
+        ,validate_secret_secret/3]).
 
 
 
@@ -271,9 +271,9 @@ stop_server(Server)
 
 
 -spec
-validate_secret_key(binary(), binary(), binary()) ->
+validate_secret_secret(binary(), binary(), binary()) ->
     boolean().
-validate_secret_key(Id, HandshakeData, SecretKey)
+validate_secret_secret(Id, HandshakeData, SecretKey)
     when erlang:is_binary(Id) andalso
          erlang:is_binary(HandshakeData) andalso
          erlang:is_binary(SecretKey) ->
