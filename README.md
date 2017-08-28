@@ -1,5 +1,5 @@
 # xrouter
-Library for interacting with XMPP components. So you can connect it using any XMPP library which implements [XEP 0114](https://xmpp.org/extensions/xep-0086.html) simply.
+Library for interacting with XMPP components. So you can connect it using any XMPP library which implements [XEP 0114](https://xmpp.org/extensions/xep-0086.html).
 
 
 
@@ -9,7 +9,7 @@ Library for interacting with XMPP components. So you can connect it using any XM
 In the following example we will make an **echo server**.  
 An echo server is usually an application which is used to test if the connection between a client and a server is successful. It consists of a server which sends back whatever text the client sent.  
 
-Server:
+Server code:
 ```erlang
 -module(echo_server).
 -behaviour(xrouter).
@@ -162,9 +162,9 @@ terminate(_Reason, _State) ->
 	ok.
 ```
 
-For client side i used python well-known XMPP library [SleekXMPP](https://github.com/fritzy/SleekXMPP) so for test you have to install python and sleekxmpp.  
-I will send message to remote component server every 15 seconds to new destination username.
-Client:
+For client side i used python well-known XMPP library [SleekXMPP](https://github.com/fritzy/SleekXMPP), so for test you have to install python and sleekxmpp.  
+I will send message to remote component server every 15 seconds to new destination username.  
+Client code:
 ```python
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
@@ -302,8 +302,3 @@ foo@bar/baz received 2 packets
 7> echo_server:stop().
 %% Some debug output about termination
 ```
-
-
-
-DEBUG    SEND: <message to="2@example.domain" type="chat" from="foo@bar/baz"><body>2</body></message>
-DEBUG    RECV: <message to="foo@bar/baz" from="2@example.domain" type="chat"><body>2</body></message>
