@@ -134,9 +134,9 @@ start_link(atom()
     sockerl_types:start_return().
 start_link(Name, Mod, Port, Opts)
     when erlang:is_atom(Name) andalso
-    erlang:is_atom(Mod) andalso
-    erlang:is_integer(Port) andalso
-    erlang:is_list(Opts) ->
+         erlang:is_atom(Mod) andalso
+         erlang:is_integer(Port) andalso
+         erlang:is_list(Opts) ->
     {ServOpts, Opts2} = filter_options(Opts),
     sockerl:start_link_server({local, Name}
                              ,?MODULE
@@ -486,9 +486,9 @@ parse_stanza(#?STATE{state = undefined, data = Data}=State
             {_, _, Int} = os:timestamp(),
             Id = erlang:integer_to_binary(Int),
             Pkt = io_lib:format(<<"<stream:stream xmlns='jabber:compone"
-            "nt:accept' xmlns:stream='http://ethe"
-            "rx.jabber.org/streams' from='~s' id="
-            "'~s'>">>
+                                  "nt:accept' xmlns:stream='http://ethe"
+                                  "rx.jabber.org/streams' from='~s' id="
+                                  "'~s'>">>
                                ,[To, Id]),
             Pkt2 = erlang:iolist_to_binary(Pkt),
             RetOpts2 = [{timeout, ?HANDSHAKE_TIMEOUT}
@@ -525,7 +525,6 @@ parse_stanza(#?STATE{state = handshake
                     ,data = Data
                     ,id = Id}=State
             ,[#xmlel{name = <<"handshake">>
-                    ,attrs = []
                     ,children = [#xmlcdata{content = HS}]}|Rest]
             ,RetOpts) ->
     case catch Mod:authenticate(Jid, Id, HS, Data) of
