@@ -240,7 +240,7 @@ handle_call(Req
         ok ->
             ok;
 
-        {ok, RetOpts} ->
+        {ok, RetOpts} when erlang:is_list(RetOpts) ->
             {Data2, RetOpts2} = concat(Data, [], RetOpts),
             State2 = State#?STATE{data= Data2},
             {ok, [{state, State2}|lists:reverse(RetOpts2)]};
@@ -248,7 +248,7 @@ handle_call(Req
         close ->
             close;
 
-        {close, RetOpts} ->
+        {close, RetOpts} when erlang:is_list(RetOpts) ->
             {Data2, RetOpts2} = concat(Data, [], RetOpts),
             State2 = State#?STATE{data= Data2},
             {close, [{state, State2}|lists:reverse(RetOpts2)]};
@@ -256,7 +256,7 @@ handle_call(Req
         {stop, Reason} ->
             {stop, Reason};
 
-        {stop, Reason, RetOpts} ->
+        {stop, Reason, RetOpts} when erlang:is_list(RetOpts) ->
             {Data2, RetOpts2} = concat(Data, [], RetOpts),
             State2 = State#?STATE{data = Data2},
             {stop, Reason, [{state, State2}|lists:reverse(RetOpts2)]};
@@ -294,7 +294,7 @@ handle_info(Msg, #?STATE{callback = Mod, data = Data}=State, _SMD) ->
         ok ->
             ok;
 
-        {ok, RetOpts} ->
+        {ok, RetOpts} when erlang:is_list(RetOpts) ->
             {Data2, RetOpts2} = concat(Data, [], RetOpts),
             State2 = State#?STATE{data= Data2},
             {ok, [{state, State2}|lists:reverse(RetOpts2)]};
@@ -302,7 +302,7 @@ handle_info(Msg, #?STATE{callback = Mod, data = Data}=State, _SMD) ->
         close ->
             close;
 
-        {close, RetOpts} ->
+        {close, RetOpts} when erlang:is_list(RetOpts) ->
             {Data2, RetOpts2} = concat(Data, [], RetOpts),
             State2 = State#?STATE{data= Data2},
             {close, [{state, State2}|lists:reverse(RetOpts2)]};
@@ -310,7 +310,7 @@ handle_info(Msg, #?STATE{callback = Mod, data = Data}=State, _SMD) ->
         {stop, Reason} ->
             {stop, Reason};
 
-        {stop, Reason, RetOpts} ->
+        {stop, Reason, RetOpts} when erlang:is_list(RetOpts) ->
             {Data2, RetOpts2} = concat(Data, [], RetOpts),
             State2 = State#?STATE{data = Data2},
             {stop, Reason, [{state, State2}|lists:reverse(RetOpts2)]};
@@ -438,7 +438,7 @@ parse_stanza(#?STATE{state = authenticated
         ok ->
             parse_stanza(State, Rest, RetOpts);
 
-        {ok, RetOpts2} ->
+        {ok, RetOpts2} when erlang:is_list(RetOpts2) ->
             {Data2, RetOpts3} = concat(Data, RetOpts, RetOpts2),
             State2 = State#?STATE{data= Data2},
             parse_stanza(State2, Rest, RetOpts3);
@@ -447,7 +447,7 @@ parse_stanza(#?STATE{state = authenticated
             State2 = State#?STATE{data= Data},
             {close, [{state, State2}|lists:reverse(RetOpts)]};
 
-        {close, RetOpts2} ->
+        {close, RetOpts2} when erlang:is_list(RetOpts2) ->
             {Data2, RetOpts3} = concat(Data, RetOpts, RetOpts2),
             State2 = State#?STATE{data= Data2},
             {close, [{state, State2}|lists:reverse(RetOpts3)]};
@@ -456,7 +456,7 @@ parse_stanza(#?STATE{state = authenticated
             State2 = State#?STATE{data= Data},
             {stop, Reason, [{state, State2}|lists:reverse(RetOpts)]};
 
-        {stop, Reason, RetOpts2} ->
+        {stop, Reason, RetOpts2} when erlang:is_list(RetOpts2) ->
             {Data2, RetOpts3} = concat(Data, RetOpts, RetOpts2),
             State2 = State#?STATE{data= Data2},
             {stop, Reason, [{state, State2}|lists:reverse(RetOpts3)]};
@@ -538,28 +538,41 @@ parse_stanza(#?STATE{state = handshake
                     ,children = [#xmlcdata{content = HS}]}|Rest]
             ,RetOpts) ->
     case catch Mod:authenticate(Jid, Id, HS, Data) of
-        true ->
+        ok ->
             State2 = State#?STATE{state = authenticated},
             RetOpts2 = [{timeout, infinity}
                        ,{packet, <<"<handshake/>">>}
                        |RetOpts],
             parse_stanza(State2, Rest, RetOpts2);
-        {true, Data2} ->
+
+        {ok, RetOpts2} when erlang:is_list(RetOpts2) ->
+            {Data2, RetOpts3} = concat(Data
+                                      ,[{packet, <<"<handshake/>">>}
+                                       |RetOpts]
+                                      ,RetOpts2),
             State2 = State#?STATE{state = authenticated
                                  ,data = Data2},
-            RetOpts2 = [{packet, <<"<handshake/>">>}|RetOpts],
-            parse_stanza(State2, Rest, RetOpts2);
-        false ->
-            Reason = {handshaking, [{handshake_data, HS}
-                                   ,{id, Id}
-                                   ,{jid, Jid}]},
-            ErrPkt = stream_error(<<"not-authorized">>
-                                 ,<<"Wrong shared secret">>),
+            parse_stanza(State2, Rest, RetOpts3);
+
+        close ->
             State2 = State#?STATE{data = Data},
-            RetOpts2 = [{state, State2}
-                       ,{packet, ErrPkt}
-                       |lists:reverse(RetOpts)],
-            {stop, Reason, RetOpts2};
+            RetOpts2 = [{state, State2} |lists:reverse(RetOpts)],
+            {close, RetOpts2};
+
+        {close, RetOpts2} when erlang:is_list(RetOpts2) ->
+            {Data2, RetOpts3} = concat(Data, RetOpts, RetOpts2),
+            State2 = State#?STATE{data= Data2},
+            {close, [{state, State2}|lists:reverse(RetOpts3)]};
+
+        {stop, Reason} ->
+            State2 = State#?STATE{data= Data},
+            {stop, Reason, [{state, State2}|lists:reverse(RetOpts)]};
+
+        {stop, Reason, RetOpts2} when erlang:is_list(RetOpts2) ->
+            {Data2, RetOpts3} = concat(Data, RetOpts, RetOpts2),
+            State2 = State#?STATE{data= Data2},
+            {stop, Reason, [{state, State2}|lists:reverse(RetOpts3)]};
+
         {'EXIT', Reason} ->
             Reason = {callback_crash, [{reason, Reason}
                                       ,{module, Mod}
@@ -574,6 +587,7 @@ parse_stanza(#?STATE{state = handshake
                        ,{packet, ErrPkt}
                        |lists:reverse(RetOpts)],
             {stop, Reason, RetOpts2};
+
         Other ->
             Reason = {callback_bad_return_value
                      ,[{returned_value, Other}
