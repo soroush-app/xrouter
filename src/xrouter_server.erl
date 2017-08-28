@@ -91,6 +91,7 @@
 -define(DEF_SOCK_OPTS, [{active, true}
                        ,{mode, binary}
                        ,{reuseaddr, true}]).
+-define(DEF_SERVER_OPTS, [{socket_options, ?DEF_SOCK_OPTS}]).
 
 -define(STREAM_TIMEOUT, 2000).
 -define(HANDSHAKE_TIMEOUT, 3000).
@@ -701,7 +702,7 @@ stream_error(Err) ->
 
 
 filter_options(Opts) ->
-    filter_options(Opts, [], []).
+    filter_options(Opts, ?DEF_SERVER_OPTS, []).
 
 
 
@@ -710,27 +711,9 @@ filter_options(Opts) ->
 
 
 filter_options([{server_options, ServOpts}|Opts], ServOpts2, Opts2) ->
-    ServOpts3 = ServOpts2 ++ filter_server_options(ServOpts),
-    filter_options(Opts, ServOpts3, Opts2);
+    filter_options(Opts, ServOpts2 ++ ServOpts, Opts2);
 filter_options([Opt|Opts], ServOpts, Opts2) ->
     filter_options(Opts, ServOpts, [Opt|Opts2]);
 filter_options([], ServOpts, Opts) ->
     {[{connector_childspec_plan, [delete]}|ServOpts]
     ,lists:reverse(Opts)}.
-
-
-
-
-
-
-
-filter_server_options(Opts) ->
-    filter_server_options(Opts, [], []).
-filter_server_options([{socket_options, SockOpts2}|Opts]
-                     ,SockOpts
-                     ,Opts2) ->
-    filter_server_options(Opts, SockOpts ++ SockOpts2, Opts2);
-filter_server_options([Opt|Opts], SockOpts, Opts2) ->
-    filter_server_options(Opts, SockOpts, [Opt|Opts2]);
-filter_server_options([], SockOpts, Opts) ->
-    [{socket_options, SockOpts ++ ?DEF_SOCK_OPTS}|lists:reverse(Opts)].
