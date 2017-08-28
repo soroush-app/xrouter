@@ -1,0 +1,9 @@
+case erlang:function_exported(rebar, main, 1) of
+    true ->
+        {_, {_, Deps}, CONFIG2} = lists:keytake(deps, 1, CONFIG),
+        {_, {_, Ver}, Deps2} = lists:keytake(sockerl, 1, Deps),
+        Sockerl = {sockerl, ".*", {git, "https://github.com/pouriya-jahanbakhsh/sockerl.git", {tag, Ver}}},
+        [{deps, [Sockerl|Deps2]}|CONFIG2];
+    false ->
+        CONFIG
+end.
