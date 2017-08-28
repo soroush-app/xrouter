@@ -490,8 +490,9 @@ parse_stanza(#?STATE{state = undefined, data = Data}=State
             "rx.jabber.org/streams' from='~s' id="
             "'~s'>">>
                                ,[To, Id]),
+            Pkt2 = erlang:iolist_to_binary(Pkt),
             RetOpts2 = [{timeout, ?HANDSHAKE_TIMEOUT}
-                       ,{packet, Pkt} | RetOpts],
+                       ,{packet, Pkt2} | RetOpts],
             parse_stanza(State#?STATE{state = handshake
                                      ,jid = To
                                      ,id = Id}
