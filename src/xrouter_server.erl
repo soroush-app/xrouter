@@ -698,6 +698,8 @@ stream_error(Err) ->
 
 
 
+
+
 filter_options(Opts) ->
     filter_options(Opts, [], []).
 
@@ -715,6 +717,8 @@ filter_options([Opt|Opts], ServOpts, Opts2) ->
 filter_options([], ServOpts, Opts) ->
     {[{connector_childspec_plan, [delete]}|ServOpts]
     ,lists:reverse(Opts)}.
+
+
 
 
 

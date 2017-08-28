@@ -141,8 +141,8 @@ handle_call(Request::any(), From::tuple(), State::any()) ->
     {'stop', Reason::any(), [Opts]}
 when
     Opts :: {'packet', Pkt::binary()}
-    | {'state', State2::binary()}
-    | {'reply', From::tuple(), Reply::any()}.
+          | {'state', State2::binary()}
+          | {'reply', From::tuple(), Reply::any()}.
 
 
 
@@ -275,8 +275,8 @@ validate_secret_key(binary(), binary(), binary()) ->
     boolean().
 validate_secret_key(Id, HandshakeData, SecretKey)
     when erlang:is_binary(Id) andalso
-    erlang:is_binary(HandshakeData) andalso
-    erlang:is_binary(SecretKey) ->
+         erlang:is_binary(HandshakeData) andalso
+         erlang:is_binary(SecretKey) ->
     <<Sha1:160/big-unsigned-integer>> =
         crypto:hash(sha, <<Id/binary, SecretKey/binary>>),
     case erlang:iolist_to_binary(io_lib:format("~40.16.0b", [Sha1])) of

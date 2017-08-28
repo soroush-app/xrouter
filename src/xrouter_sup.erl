@@ -133,7 +133,7 @@ init(undefined) ->
 
 make_childspecs(Servers) when erlang:is_list(Servers) ->
     [make_childspec(Name, Mod, Port, Opts)
-        || {Name, Mod, Port, Opts} <- Servers].
+    || {Name, Mod, Port, Opts} <- Servers].
 
 
 
@@ -168,6 +168,7 @@ childspec_plan_fun(_Reason, ResCount) when (ResCount rem 10 == 0) ->
     {restart, 1000};
 childspec_plan_fun(_Reason, _ResCount) ->
     restart.
+
 
 
 
