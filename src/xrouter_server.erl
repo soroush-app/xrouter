@@ -490,16 +490,11 @@ parse_stanza(#?STATE{state = undefined, data = Data}=State
         {ok, To} ->
             {_, _, Int} = os:timestamp(),
             Id = erlang:integer_to_binary(Int),
-            StreamAttrs = [{<<"xmlns">>, <<"jabber:component:accept">>}
-                          ,{<<"xmlns:stream">>
-                           ,<<"http://etherx.jabber.org/streams">>}],
-            Pkt = xmpp_utils:make_pkt(<<"stream:stream">>
-                                     ,To
-                                     ,undefined
-                                     ,undefined
-                                     ,Id
-                                     ,[]
-                                     ,StreamAttrs),
+            Pkt = io_lib:format(<<"<stream:stream xmlns='jabber:compone"
+                                  "nt:accept' xmlns:stream='http://ethe"
+                                  "rx.jabber.org/streams' from='~s' id="
+                                  "'~s'>">>
+                               ,[To, Id]),
             RetOpts2 = [{timeout, ?HANDSHAKE_TIMEOUT}
                        ,{packet, Pkt} | RetOpts],
             parse_stanza(State#?STATE{state = handshake
