@@ -103,7 +103,14 @@ authenticate(Jid::binary()
             ,Id::binary()
             ,HandshakeData::binary()
             ,State::any()) ->
-    boolean() | {'true', State2::any()}.
+    'ok'                           |
+    {'ok', [Opts]}                 |
+    'close'                        |
+    {'close', [Opts]}              |
+    {'stop', Reason::any()}        |
+    {'stop', Reason::any(), [Opts]}
+when
+    Opts :: {'packet', Pkt::binary()} | {'state', State2::binary()}.
 
 
 
@@ -117,7 +124,7 @@ handle_xmpp_xml(XMPP_XML::#xmpp_utils_xml{}, State::any()) ->
     {'close', [Opts]}              |
     {'stop', Reason::any()}        |
     {'stop', Reason::any(), [Opts]}
-    when
+when
     Opts :: {'packet', Pkt::binary()} | {'state', State2::binary()}.
 
 
@@ -132,7 +139,7 @@ handle_call(Request::any(), From::tuple(), State::any()) ->
     {'close', [Opts]}              |
     {'stop', Reason::any()}        |
     {'stop', Reason::any(), [Opts]}
-    when
+when
     Opts :: {'packet', Pkt::binary()}
     | {'state', State2::binary()}
     | {'reply', From::tuple(), Reply::any()}.
@@ -149,7 +156,7 @@ handle_info(Msg::any(), State::any()) ->
     {'close', [Opts]}              |
     {'stop', Reason::any()}        |
     {'stop', Reason::any(), [Opts]}
-    when
+when
     Opts :: {'packet', Pkt::binary()} | {'state', State2::binary()}.
 
 
