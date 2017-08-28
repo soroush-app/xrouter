@@ -1,5 +1,6 @@
 # xrouter
-Library for interacting with XMPP components. So you can connect it using any XMPP library which implements [XEP 0114](https://xmpp.org/extensions/xep-0086.html).
+Library for interacting with XMPP components. So you can connect it using any XMPP library which implements [XEP 0114](https://xmpp.org/extensions/xep-0086.html).  
+All well-known XMPP libraries impemented this.
 
 # Build
 ### Download source
