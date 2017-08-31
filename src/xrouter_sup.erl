@@ -151,7 +151,7 @@ make_childspec(Name, Mod, Port, Opts)
               ,start_link
               ,[Name, Mod, Port, Opts]}
     ,count => infinity
-    ,plan => [fun childspec_plan_fun/2]
+    ,plan => [fun childspec_plan_fun/3]
     ,type => supervisor}.
 
 
@@ -160,13 +160,13 @@ make_childspec(Name, Mod, Port, Opts)
 
 
 
-childspec_plan_fun({socket_listen, _}, _ResCount) ->
+childspec_plan_fun(_Id, {socket_listen, _}, _ResCount) ->
     stop;
-childspec_plan_fun(normal, _ResCount) ->
+childspec_plan_fun(_Id, normal, _ResCount) ->
     delete;
-childspec_plan_fun(_Reason, ResCount) when (ResCount rem 10 == 0) ->
+childspec_plan_fun(_Id, _Reason, ResCount) when (ResCount rem 10 == 0) ->
     {restart, 1000};
-childspec_plan_fun(_Reason, _ResCount) ->
+childspec_plan_fun(_Id, _Reason, _ResCount) ->
     restart.
 
 
