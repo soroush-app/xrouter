@@ -1,46 +1,43 @@
-%%% --------------------------------------------------------------------
-%%% BSD 3-Clause License
+%%% ------------------------------------------------------------------------------------------------
+%%% Xrouter is available for use under the following license, commonly known as the 3-clause  (or
+%%% "modified") BSD license:
 %%%
 %%% Copyright (c) 2017-2018, Soroush
-%%% soroush-app.ir
+%%% http://soroush-app.ir
 %%% All rights reserved.
 %%%
-%%% Redistribution and use in source and binary forms, with or without
-%%% modification, are permitted provided that the following conditions
-%%% are met:
+%%% Redistribution and use in source and binary forms, with or without modification, are permitted
+%%% provided that the following conditions are met:
 %%%
-%%% 1. Redistributions of source code must retain the above copyright
-%%% notice, this list of conditions and the following disclaimer.
+%%% 1. Redistributions of source code must retain the above copyright notice, this list of
+%%%    conditions and the following disclaimer.
 %%%
-%%% 2. Redistributions in binary form must reproduce the above copyright
-%%% notice, this list of conditions and the following disclaimer in the
-%%% documentation and/or other materials provided with the distribution.
+%%% 2. Redistributions in binary form must reproduce the above copyright notice, this list of
+%%%    conditions and the following disclaimer in the documentation and/or other materials provided
+%%%    with the distribution.
 %%%
-%%% 3. Neither the name of the copyright holder nor the names of its
-%%% contributors may be used to endorse or promote products derived from
-%%% this software without specific prior written permission.
+%%% 3. Neither the name of the copyright holder nor the names of its contributors may be used to
+%%%    endorse or promote products derived from this software without specific prior written
+%%%    permission.
 %%%
-%%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-%%% "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-%%% LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-%%% FOR A  PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-%%% COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-%%% INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-%%% BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-%%% LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-%%% CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-%%% LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-%%% ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+%%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+%%% IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+%%% FITNESS FOR A  PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+%%% CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+%%% CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+%%% SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+%%% THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+%%% OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 %%% POSSIBILITY OF SUCH DAMAGE.
-%%% --------------------------------------------------------------------
+%%% ------------------------------------------------------------------------------------------------
 %% @author   Pouriya Jahanbakhsh <pouriya.jahanbakhsh@gmail.com>
-%% @version  17.8.27
-%% ---------------------------------------------------------------------
+%% @version  17.9.3
+%% -------------------------------------------------------------------------------------------------
 
 -module(xrouter).
 -author("pouriya.jahanbakhsh@gmail.com").
 
-%% ---------------------------------------------------------------------
+%% -------------------------------------------------------------------------------------------------
 %% Exports:
 
 
@@ -54,7 +51,7 @@
         ,start_link_server/4
         ,get_servers/0
         ,stop_server/1
-        ,validate_secret_secret/3]).
+        ,validate_shared_secret/3]).
 
 
 
@@ -68,7 +65,7 @@
 
 
 
-%% ---------------------------------------------------------------------
+%% -------------------------------------------------------------------------------------------------
 %% Records & Macros & Includes:
 
 
@@ -83,7 +80,7 @@
 
 
 
-%% ---------------------------------------------------------------------
+%% -------------------------------------------------------------------------------------------------
 %% Behavior info:
 
 
@@ -171,7 +168,15 @@ terminate(Reason::any(), State::any()) ->
 
 
 
-%% ---------------------------------------------------------------------
+-callback
+code_change(OldVsn::term(), State::term(), Extra::term()) ->
+    {'ok', NewState::term()}.
+
+
+
+
+
+%% -------------------------------------------------------------------------------------------------
 %% API:
 
 
@@ -199,8 +204,7 @@ start() ->
 stop() ->
     'ok' | {'error', term()}.
 stop() ->
-    ok = lists:foreach(fun stop_server/1
-                      ,[Server || {_, Server} <- get_servers()]),
+    ok = lists:foreach(fun stop_server/1, [Server || {_, Server} <- get_servers()]),
     application:stop(?MODULE).
 
 
@@ -210,16 +214,12 @@ stop() ->
 
 
 -spec
-start_server(atom()
-            ,module()
-            ,sockerl_types:port_number()
-            ,sockerl_types:start_options()) ->
+start_server(atom(), module(), sockerl_types:port_number(), sockerl_types:start_options()) ->
     sockerl_types:start_return().
-start_server(Name, Mod, Port, Opts)
-    when erlang:is_atom(Name) andalso
-         erlang:is_atom(Mod) andalso
-         erlang:is_integer(Port) andalso
-         erlang:is_list(Opts) ->
+start_server(Name, Mod, Port, Opts) when erlang:is_atom(Name) andalso
+                                         erlang:is_atom(Mod) andalso
+                                         erlang:is_integer(Port) andalso
+                                         erlang:is_list(Opts) ->
     xrouter_sup:start_server(Name, Mod, Port, Opts).
 
 
@@ -229,16 +229,12 @@ start_server(Name, Mod, Port, Opts)
 
 
 -spec
-start_link_server(atom()
-                 ,module()
-                 ,sockerl_types:port_number()
-                 ,sockerl_types:start_options()) ->
+start_link_server(atom(), module(), sockerl_types:port_number(), sockerl_types:start_options()) ->
     sockerl_types:start_return().
-start_link_server(Name, Mod, Port, Opts)
-    when erlang:is_atom(Name) andalso
-         erlang:is_atom(Mod) andalso
-         erlang:is_integer(Port) andalso
-         erlang:is_list(Opts) ->
+start_link_server(Name, Mod, Port, Opts) when erlang:is_atom(Name) andalso
+                                              erlang:is_atom(Mod) andalso
+                                              erlang:is_integer(Port) andalso
+                                              erlang:is_list(Opts) ->
     xrouter_server:start_link(Name, Mod, Port, Opts).
 
 
@@ -259,9 +255,11 @@ get_servers() ->
 
 
 
-stop_server(Server)
-    when erlang:is_atom(Server) orelse
-         erlang:is_pid(Server) ->
+-spec
+stop_server(atom() | pid()) ->
+    'ok'.
+stop_server(Server) when erlang:is_atom(Server) orelse
+                         erlang:is_pid(Server) ->
     xrouter_server:stop(Server).
 
 
@@ -271,14 +269,12 @@ stop_server(Server)
 
 
 -spec
-validate_secret_secret(binary(), binary(), binary()) ->
+validate_shared_secret(binary(), binary(), binary()) ->
     boolean().
-validate_secret_secret(Id, HandshakeData, SecretKey)
-    when erlang:is_binary(Id) andalso
-         erlang:is_binary(HandshakeData) andalso
-         erlang:is_binary(SecretKey) ->
-    <<Sha1:160/big-unsigned-integer>> =
-        crypto:hash(sha, <<Id/binary, SecretKey/binary>>),
+validate_shared_secret(Id, HandshakeData, SecretKey) when erlang:is_binary(Id) andalso
+                                                          erlang:is_binary(HandshakeData) andalso
+                                                          erlang:is_binary(SecretKey) ->
+    <<Sha1:160/big-unsigned-integer>> = crypto:hash(sha, <<Id/binary, SecretKey/binary>>),
     case erlang:iolist_to_binary(io_lib:format("~40.16.0b", [Sha1])) of
         HandshakeData ->
             true;
@@ -291,7 +287,7 @@ validate_secret_secret(Id, HandshakeData, SecretKey)
 
 
 
-%% ---------------------------------------------------------------------
+%% -------------------------------------------------------------------------------------------------
 %% application's callbacks:
 
 
