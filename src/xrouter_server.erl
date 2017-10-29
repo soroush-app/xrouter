@@ -83,8 +83,8 @@
 -define(DEF_SOCK_OPTS, [{active, true}, {mode, binary}, {reuseaddr, true}]).
 -define(DEF_SERVER_OPTS, [{socket_options, ?DEF_SOCK_OPTS}]).
 
--define(OPEN_STREAM_TIMEOUT, 5000).
--define(HANDSHAKE_TIMEOUT, 5000).
+-define(OPEN_STREAM_TIMEOUT, 5001).
+-define(HANDSHAKE_TIMEOUT, 5002).
 -define(DEF_TERMINATE_TIMEOUT, 2000).
 
 
