@@ -1,7 +1,7 @@
 {application
 ,xrouter
 ,[{description, "Server-side implementation of XMPP component (XEP 0114)"}
- ,{vsn, "17.9.3"}
+ ,{vsn, "17.10.29"}
  ,{applications, [kernel, stdlib]}
  ,{mod, {xrouter, undefined}}
  ,{env,[{servers,[]}]}
