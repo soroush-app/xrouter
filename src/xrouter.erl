@@ -55,7 +55,7 @@
 
 %% etcp's exports:
 -export([listen_init/3
-        ,connector_init/2
+        ,connection_init/2
         ,handle_packet/3
         ,handle_call/4
         ,handle_cast/3
@@ -292,7 +292,7 @@ listen_init({Mod, InitArg}, _, _) ->
 
 
 
-connector_init(State, _) ->
+connection_init(State, _) ->
     {ok, Parser} = exml_stream:new_parser(),
     {ok, [{state, State#?STATE{parser = Parser, state = undefined}}
          ,{timeout, ?OPEN_STREAM_TIMEOUT}]}.
