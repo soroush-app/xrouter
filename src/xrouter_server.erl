@@ -45,25 +45,22 @@
 
 
 %% API:
--export([start_link/4
+-export([start_link/5
         ,stop/1]).
 
 
 
 
 
-%% sockerl's exports:
--export([listen_init/2
+%% etcp's exports:
+-export([listen_init/3
         ,connector_init/2
         ,handle_packet/3
         ,handle_call/4
         ,handle_cast/3
-        ,handle_event/3
         ,handle_info/3
         ,handle_disconnect/2
         ,terminate/3
-        ,timeout/2
-        ,srtimeout/2
         ,code_change/3]).
 
 
@@ -80,7 +77,7 @@
 -define(STATE, xrouter_server_state).
 -record(?STATE, {callback, data, parser, state, jid, id}).
 
--define(DEF_SOCK_OPTS, [{active, true}, {mode, binary}, {reuseaddr, true}]).
+-define(DEF_SOCK_OPTS, [{mode, binary}, {reuseaddr, true}]).
 -define(DEF_SERVER_OPTS, [{socket_options, ?DEF_SOCK_OPTS}]).
 
 -define(OPEN_STREAM_TIMEOUT, 5001).
@@ -104,8 +101,8 @@
 
 
 %% I need:
-%%  #sockerl_metadat{}
--include_lib("sockerl/include/sockerl.hrl").
+%%  #etcp_metadat{}
+-include_lib("etcp/include/etcp.hrl").
 
 
 
@@ -118,14 +115,24 @@
 
 
 -spec
-start_link(atom(), module(), sockerl_types:port_number(), sockerl_types:start_options()) ->
-    sockerl_types:start_return().
-start_link(Name, Mod, Port, Opts) when erlang:is_atom(Name) andalso
-                                       erlang:is_atom(Mod) andalso
-                                       erlang:is_integer(Port) andalso
-                                       erlang:is_list(Opts) ->
-    {ServOpts, Opts2} = filter_options(Opts),
-    sockerl:start_link_server({local, Name}, ?MODULE, {Mod, Opts2}, Port, ServOpts).
+start_link(atom(), module(), term(), etcp_types:port_number(), etcp_types:start_options()) ->
+    etcp_types:start_return().
+start_link(Name, Mod, InitArg, Port, Opts) when erlang:is_atom(Name) andalso
+                                                erlang:is_atom(Mod) andalso
+                                                erlang:is_integer(Port) andalso
+                                                erlang:is_map(Opts) ->
+    SockOpts =
+        case maps:get(transporter_options, Opts, []) of
+            [] ->
+                ?DEF_SOCK_OPTS;
+            SockOpts2 ->
+                SockOpts2
+        end,
+    etcp:start_link_server({local, Name}
+                          ,?MODULE
+                          ,{Mod, InitArg}
+                          ,Port
+                          ,Opts#{transporter_options => SockOpts}).
 
 
 
@@ -141,7 +148,7 @@ stop(Server) ->
         fun({_, Pid}) ->
             sys:terminate(Pid, normal, ?DEF_TERMINATE_TIMEOUT)
         end,
-    Pids = lists:reverse([{undefined, Server} | sockerl:get_server_connections(Server)]),
+    Pids = lists:reverse([{undefined, Server} | etcp:fetch_server_connections(Server)]),
     ok = lists:foreach(Terminate, Pids).
 
 
@@ -149,14 +156,14 @@ stop(Server) ->
 
 
 %% -------------------------------------------------------------------------------------------------
-%% sockerl's callbcaks:
+%% etcp's callbcaks:
 
 
 
 
 
-listen_init({Mod, Opts}, _LSock) ->
-    case Mod:init(Opts) of
+listen_init({Mod, InitArg}, _, _) ->
+    case Mod:init(InitArg) of
         {ok, Data} ->
             {ok, #?STATE{callback = Mod, data = Data}};
         {stop, Reason} ->
@@ -164,10 +171,10 @@ listen_init({Mod, Opts}, _LSock) ->
         {'EXIT', Reason} ->
             {stop, Reason};
         Other ->
-            {stop, {bad_return_value, [{returned_value, Other}
-                                      ,{module, Mod}
-                                      ,{function, init}
-                                      ,{options, Opts}]}}
+            {stop, {return, [{value, Other}
+                            ,{module, Mod}
+                            ,{function, init}
+                            ,{arguments, [InitArg]}]}}
     end.
 
 
@@ -176,7 +183,7 @@ listen_init({Mod, Opts}, _LSock) ->
 
 
 
-connector_init(State, _SMD) ->
+connector_init(State, _) ->
     {ok, Parser} = exml_stream:new_parser(),
     {ok, [{state, State#?STATE{parser = Parser, state = undefined}}
          ,{timeout, ?OPEN_STREAM_TIMEOUT}]}.
@@ -187,9 +194,7 @@ connector_init(State, _SMD) ->
 
 
 
-handle_packet(Pkt
-             ,#?STATE{parser = Parser}=State
-             ,_SMD) ->
+handle_packet(Pkt, #?STATE{parser = Parser}=State, _) ->
     case exml_stream:parse(Parser, Pkt) of
         {ok, Parser2, Stanzas} ->
             parse_stanza(State#?STATE{parser = Parser2}, Stanzas, []);
@@ -205,7 +210,7 @@ handle_packet(Pkt
 
 
 
-handle_call(Req, From, #?STATE{callback = Mod, data = Data}=State, _SMD) ->
+handle_call(Req, From, #?STATE{callback = Mod, data = Data}=State, _) ->
     case catch Mod:handle_call(Req, From, Data) of
         ok ->
             ok;
@@ -232,22 +237,22 @@ handle_call(Req, From, #?STATE{callback = Mod, data = Data}=State, _SMD) ->
             {stop, Reason, [{state, State2}|lists:reverse(RetOpts2)]};
 
         {'EXIT', Reason} ->
-            Reason2 = {callback_crash, [{reason, Reason}
-                                       ,{module, Mod}
-                                       ,{function, handle_call}
-                                       ,{request, Req}
-                                       ,{from, From}
-                                       ,{state, Data}]},
+            Reason2 = {crash, [{reason, Reason}
+                              ,{module, Mod}
+                              ,{function, handle_call}
+                              ,{request, Req}
+                              ,{from, From}
+                              ,{state, Data}]},
             ErrPkt = stream_error(<<"internal-server-error">>),
             {stop, Reason2, [{packet, ErrPkt}]};
 
         Other ->
-            Reason = {callback_return_value, [{returned_value, Other}
-                                             ,{module, Mod}
-                                             ,{function, handle_call}
-                                             ,{request, Req}
-                                             ,{from, From}
-                                             ,{state, Data}]},
+            Reason = {return, [{value, Other}
+                              ,{module, Mod}
+                              ,{function, handle_call}
+                              ,{request, Req}
+                              ,{from, From}
+                              ,{state, Data}]},
             ErrPkt = stream_error(<<"internal-server-error">>),
             {stop, Reason, [{packet, ErrPkt}]}
     end.
@@ -257,12 +262,13 @@ handle_call(Req, From, #?STATE{callback = Mod, data = Data}=State, _SMD) ->
 
 
 
-
-handle_info(Msg, #?STATE{callback = Mod, data = Data}=State, _SMD) ->
+handle_info(timeout, _, _) ->
+    ErrPkt = stream_error(<<"conflict">>, <<"Timeout">>),
+    {stop, timeout, [{packet, ErrPkt}]};
+handle_info(Msg, #?STATE{callback = Mod, data = Data}=State, _) ->
     case catch Mod:handle_info(Msg, Data) of
         ok ->
             ok;
-
         {ok, RetOpts} when erlang:is_list(RetOpts) ->
             {Data2, RetOpts2} = concat(Data, [], RetOpts),
             State2 = State#?STATE{data= Data2},
@@ -285,20 +291,20 @@ handle_info(Msg, #?STATE{callback = Mod, data = Data}=State, _SMD) ->
             {stop, Reason, [{state, State2}|lists:reverse(RetOpts2)]};
 
         {'EXIT', Reason} ->
-            Reason2 = {callback_crash, [{reason, Reason}
-                                       ,{module, Mod}
-                                       ,{function, handle_info}
-                                       ,{message, Msg}
-                                       ,{state, Data}]},
+            Reason2 = {crash, [{reason, Reason}
+                              ,{module, Mod}
+                              ,{function, handle_info}
+                              ,{message, Msg}
+                              ,{state, Data}]},
             ErrPkt = stream_error(<<"internal-server-error">>),
             {stop, Reason2, [{packet, ErrPkt}]};
 
         Other ->
-            Reason = {callback_return_value, [{returned_value, Other}
-                                             ,{module, Mod}
-                                             ,{function, handle_info}
-                                             ,{message, Msg}
-                                             ,{state, Data}]},
+            Reason = {return, [{value, Other}
+                              ,{module, Mod}
+                              ,{function, handle_info}
+                              ,{message, Msg}
+                              ,{state, Data}]},
             ErrPkt = stream_error(<<"internal-server-error">>),
             {stop, Reason, [{packet, ErrPkt}]}
     end.
@@ -318,16 +324,7 @@ handle_cast(Req, State, SMD) ->
 
 
 
-handle_event(Event, State, SMD) ->
-    handle_info({'$gen_event', Event}, State, SMD).
-
-
-
-
-
-
-
-handle_disconnect(_State, _SMD) ->
+handle_disconnect(_State, _) ->
     close.
 
 
@@ -341,33 +338,12 @@ terminate(Reason, #?STATE{callback = Mod, data = Data, state = CState}, SMD) ->
         undefined ->
             ok;
         _ ->
-            _ = sockerl_socket:send(sockerl_metadata:get_transporter(SMD)
-                                   ,sockerl_metadata:get_socket(SMD)
-                                   ,<<"</stream:stream>">>
-                                   ,sockerl_metadata:get_options(SMD))
+            _ = etcp_transporter:send(etcp_metadata:transporter(SMD)
+                                     ,etcp_metadata:socket(SMD)
+                                     ,<<"</stream:stream>">>
+                                     ,etcp_metadata:transporter_options(SMD))
     end,
     _ =  Mod:terminate(Reason, Data),
-    ok.
-
-
-
-
-
-
-
-timeout(_State, #sockerl_metadata{timeout = ?OPEN_STREAM_TIMEOUT}) ->
-    ErrPkt = stream_error(<<"conflict">>, <<"Openning stream timeout">>),
-    {stop, stream_timeout, [{packet, ErrPkt}]};
-timeout(_State, #sockerl_metadata{timeout = ?HANDSHAKE_TIMEOUT}) ->
-    ErrPkt = stream_error(<<"conflict">>, <<"handshake timeout">>),
-    {stop, handshake_timeout, [{packet, ErrPkt}]}.
-
-
-
-
-
-
-srtimeout(_State, _SMD) ->
     ok.
 
 
@@ -427,20 +403,20 @@ parse_stanza(#?STATE{state = authenticated, callback = Mod, data = Data}=State
             {stop, Reason, [{state, State2}|lists:reverse(RetOpts3)]};
 
         {'EXIT', Reason} ->
-            Reason2 = {callback_crash, [{reason, Reason}
-                                       ,{module, Mod}
-                                       ,{function, handle_xmpp_xml}
-                                       ,{xmpp_xml, XMPPXML}
-                                       ,{state, Data}]},
+            Reason2 = {crash, [{reason, Reason}
+                              ,{module, Mod}
+                              ,{function, handle_xmpp_xml}
+                              ,{xmpp_xml, XMPPXML}
+                              ,{state, Data}]},
             ErrPkt = stream_error(<<"internal-server-error">>),
             {stop, Reason2, [{packet, ErrPkt}|RetOpts]};
 
         Other ->
-            Reason = {callback_return_value, [{returned_value, Other}
-                                             ,{module, Mod}
-                                             ,{function, handle_xmpp_xml}
-                                             ,{xmpp_xml, XMPPXML}
-                                             ,{state, Data}]},
+            Reason = {return, [{value, Other}
+                              ,{module, Mod}
+                              ,{function, handle_xmpp_xml}
+                              ,{xmpp_xml, XMPPXML}
+                              ,{state, Data}]},
             ErrPkt = stream_error(<<"internal-server-error">>),
             {stop, Reason, [{packet, ErrPkt}|RetOpts]}
     end;
@@ -517,26 +493,26 @@ parse_stanza(#?STATE{state = handshake
             {stop, Reason, [{state, State2} | lists:reverse(RetOpts3)]};
 
         {'EXIT', Reason} ->
-            Reason = {callback_crash, [{reason, Reason}
-                                      ,{module, Mod}
-                                      ,{function, autheticate}
-                                      ,{jid_binary, Jid}
-                                      ,{id, Id}
-                                      ,{handshake_data, HS}
-                                      ,{state, Data}]},
+            Reason = {crash, [{reason, Reason}
+                             ,{module, Mod}
+                             ,{function, autheticate}
+                             ,{jid_binary, Jid}
+                             ,{id, Id}
+                             ,{handshake_data, HS}
+                             ,{state, Data}]},
             ErrPkt = stream_error(<<"internal-server-error">>),
             State2 = State#?STATE{data = Data},
             RetOpts2 = [{state, State2}, {packet, ErrPkt} | lists:reverse(RetOpts)],
             {stop, Reason, RetOpts2};
 
         Other ->
-            Reason = {callback_bad_return_value, [{returned_value, Other}
-                                                 ,{module, Mod}
-                                                 ,{function, autheticate}
-                                                 ,{jid_binary, Jid}
-                                                 ,{id, Id}
-                                                 ,{handshake_data, HS}
-                                                 ,{state, Data}]},
+            Reason = {return, [{value, Other}
+                              ,{module, Mod}
+                              ,{function, autheticate}
+                              ,{jid_binary, Jid}
+                              ,{id, Id}
+                              ,{handshake_data, HS}
+                              ,{state, Data}]},
             Pkt = stream_error(<<"internal-server-error">>),
             State2 = State#?STATE{data = Data},
             RetOpts2 = [{state, State2}, {packet, Pkt} | lists:reverse(RetOpts)],
@@ -630,26 +606,3 @@ stream_error(Err) ->
                        ,undefined
                        ,undefined
                        ,[xmpp_utils:make_xmpp_error(Err)]).
-
-
-
-
-
-
-
-
-filter_options(Opts) ->
-    filter_options(Opts, ?DEF_SERVER_OPTS, []).
-
-
-
-
-
-
-
-filter_options([{server_options, ServOpts}|Opts], ServOpts2, Opts2) ->
-    filter_options(Opts, ServOpts2 ++ ServOpts, Opts2);
-filter_options([Opt|Opts], ServOpts, Opts2) ->
-    filter_options(Opts, ServOpts, [Opt|Opts2]);
-filter_options([], ServOpts, Opts) ->
-    {[{connector_childspec_plan, [delete]} | ServOpts], lists:reverse(Opts)}.
