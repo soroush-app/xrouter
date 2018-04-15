@@ -5,7 +5,7 @@
  ,{applications, [kernel, stdlib]}
  ,{mod, {xrouter, undefined}}
  ,{env,[{servers,[]}]}
- ,{modules, [xrouter, xrouter_server, xrouter_sup]}
+ ,{modules, [xrouter]}
  ,{maintainers, ["pouriya.jahanbakhsh@gmail.com"]}
  ,{licenses, ["BSD 3-Clause"]}
  ,{links, [{"GitHub", "https://github.com/soroush-app/xrouter"}]}]}.
