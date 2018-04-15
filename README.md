@@ -14,5 +14,5 @@ Library for interacting with XMPP components. So you can connect it using any XM
 ##### Rebar
 Put this in `deps` in `rebar.config`:  
 ```erlang
-{xrouter, ".*", {git, "https://github.com/soroush-app/xrouter.git", {tag, "17.9.3"}}}
+{xrouter, ".*", {git, "https://github.com/soroush-app/xrouter.git", {branch, "master"}}}
 ```
