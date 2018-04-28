@@ -126,7 +126,7 @@ handle_call(get_count, From, #{count := Count}) ->
 
     %% one process makes a call (it might use gen_server:call/2-3) for
     %% getting count of received packets and i want to give them to that
-    {ok, [{reply, From, Count}]}.
+    {ok, [{reply, {From, Count}}]}.
 
 
 handle_info(print_count,  #{jid := Jid, count := Count}) ->
