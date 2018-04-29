@@ -482,6 +482,8 @@ handle_event({xmlstreamelement, #xmlel{name = <<"handshake">>, children = [{xmlc
             Pkt = stream_error(<<"internal-server-error">>),
             {stop, Reason, [{state, State#?STATE{data = Data}}, {packet, Pkt}]}
     end;
+handle_event({xmlstreamend, <<"stream:stream">>}, #?STATE{state = authenticated}) ->
+    close;
 handle_event(Info, #?STATE{state = State}) when erlang:is_tuple(Info) andalso
     erlang:tuple_size(Info) > 1 andalso
     (erlang:element(1, Info) =:= xmlstreamelement orelse
@@ -492,7 +494,7 @@ handle_event(Info, #?STATE{state = State}) when erlang:is_tuple(Info) andalso
         erlang:element(1, Info) =:= xmlstreamraw) ->
     Rsn = {xml, [{value, Info}, {state, State}]},
     Pkt = stream_error(<<"conflict">>, <<"XML not well formed">>),
-    {stop, Rsn, [{paket, Pkt}]};
+    {stop, Rsn, [{packet, Pkt}]};
 handle_event(Event, _) ->
     {stop, {event, [{event, Event}]}, [{packet, stream_error(<<"internal-server-error">>)}]}.
 
